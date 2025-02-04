@@ -1,0 +1,48 @@
+﻿<Window x:Class="SHOOTER_MESSANGER.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Messenger" Height="500" Width="800">
+    <Grid>
+        <!-- Колонки для списка друзей и чата -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Список друзей -->
+        <StackPanel Grid.Column="0" Background="#EEE" VerticalAlignment="Stretch">
+            <TextBlock Text="Друзья" FontSize="16" FontWeight="Bold" Margin="10"/>
+            <ListBox x:Name="FriendsListBox" Margin="10" SelectionChanged="FriendsListBox_SelectionChanged">
+                <!-- Друзья добавляются программно -->
+            </ListBox>
+        </StackPanel>
+
+        <!-- Кнопка для поиска друзей -->
+        <Button Content="Найти друзей" VerticalAlignment="Top" HorizontalAlignment="Left" 
+                Width="120" Height="30" Margin="10" Click="Button_Click"/>
+
+        <!-- Чат -->
+        <Grid Grid.Column="1" Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Ник друга -->
+            <TextBlock x:Name="FriendNicknameTextBlock" FontSize="16" FontWeight="Bold" Margin="5,5,166,5"/>
+            <Button Content="Проверить обновления" Click="CheckForUpdates_Click" Margin="419,0,0,0"/>
+
+            <!-- История чата -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <TextBlock x:Name="ChatTextBlock" TextWrapping="Wrap" Margin="5"/>
+            </ScrollViewer>
+
+            <!-- Поле ввода и кнопка отправки -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5">
+                <TextBox x:Name="InputBox" Width="461" Height="30" Margin="0,0,10,0"/>
+                <Button x:Name="SendButton" Content="Отправить" Width="99" Height="30" Click="SendButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

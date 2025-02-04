@@ -1,0 +1,143 @@
+﻿<Window x:Class="SHOOTER_MESSANGER.SearchFriendsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Messenger" Height="600" Width="900" ResizeMode="CanResizeWithGrip">
+    <Grid Margin="10">
+        <!-- Основной TabControl для вкладок -->
+        <TabControl>
+            <!-- Вкладка "Друзья" -->
+            <TabItem Header="Друзья">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <!-- Список друзей -->
+                        <RowDefinition Height="Auto" />
+                        <!-- ТекстBox сообщений -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Список друзей -->
+                    <ListBox Name="FriendsListBox" Grid.Row="0" Margin="0,0,0,10">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <TextBlock Text="{Binding FriendName}" FontWeight="Bold" />
+                                    <Button Content="Удалить друга"
+                                            Click="RemoveFriendButton_Click"
+                                            Tag="{Binding FriendId}"
+                                            Margin="10,0,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- TextBox для сообщений -->
+                    <TextBox Name="FriendsMessageBox" Grid.Row="1" Height="35"
+                             IsReadOnly="True" Margin="0,10,0,0" />
+                </Grid>
+            </TabItem>
+
+            <!-- Вкладка "Заявки" -->
+            <TabItem Header="Заявки">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <!-- Входящие заявки -->
+                        <RowDefinition Height="Auto" />
+                        <!-- Исходящие заявки -->
+                        <RowDefinition Height="*" />
+                        <!-- Сообщения -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Входящие заявки -->
+                    <GroupBox Header="Входящие заявки" Margin="0,0,0,10" Grid.Row="0">
+                        <ListBox Name="IncomingRequestsListBox">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding RequesterName}" FontWeight="Bold" />
+                                        <Button Content="Принять"
+                                                Click="AcceptRequestButton_Click"
+                                                Tag="{Binding RequesterId}"
+                                                Margin="10,0,0,0" />
+                                        <Button Content="Отклонить"
+                                                Click="RejectRequestButton_Click"
+                                                Tag="{Binding RequesterId}"
+                                                Margin="5,0,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </GroupBox>
+
+                    <!-- Исходящие заявки -->
+                    <GroupBox Header="Исходящие заявки" Margin="0,0,0,10" Grid.Row="1">
+                        <ListBox Name="OutgoingRequestsListBox">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                                        <TextBlock Text="{Binding ReceiverName}" FontWeight="Bold" />
+                                        <TextBlock Text=" | Ожидает подтверждения" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <!-- Вкладка "Поиск пользователей" -->
+            <TabItem Header="Поиск">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <!-- Поиск -->
+                        <RowDefinition Height="*" />
+                        <!-- Результаты поиска -->
+                        <RowDefinition Height="Auto" />
+                        <!-- Сообщения -->
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="63*" />
+                        <ColumnDefinition Width="691*"/>
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Поле ввода для поиска -->
+                    <TextBox Name="SearchBox" Height="35"
+                             VerticalAlignment="Center" Grid.Column="0"
+                             Margin="0,0,10,0" Grid.ColumnSpan="2" />
+
+                    <!-- Кнопка для поиска -->
+                    <Button Name="SearchButton" Content="Найти"
+                            Height="35" Width="100"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center" Grid.Column="2"
+                            Click="SearchButton_Click" />
+
+                    <!-- Список результатов поиска -->
+                    <ListBox Name="SearchResultsListBox" 
+                             Grid.Row="1" 
+                             Grid.ColumnSpan="3" 
+                             Margin="0,10,0,10" 
+                             SelectionChanged="SearchResultsListBox_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <TextBlock Text="{Binding FriendName}" FontWeight="Bold" />
+                                    <Button Content="Добавить в друзья"
+                                            Click="AddFriendButton_Click"
+                                            Tag="{Binding FriendId}"
+                                            Margin="10,0,0,0" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- TextBox для сообщений -->
+                    <TextBox Name="MessageBoxText" Grid.Row="2" Height="35"
+                             IsReadOnly="True" Margin="0,10,0,0" Grid.ColumnSpan="2" />
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
