@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace SHOOTER_MESSANGER
 {
@@ -25,7 +27,7 @@ namespace SHOOTER_MESSANGER
 
             // Загрузка всех пользователей при открытии окна
             _ = LoadAllUsersAsync();
-            _ = LoadFriendsListAsync();
+            _ = LoadFriendsAsync();
             _ = LoadIncomingRequestsAsync();
             _ = LoadOutgoingRequestsAsync();
         }
@@ -73,82 +75,120 @@ namespace SHOOTER_MESSANGER
 
 
         // Загрузка списка друзей
-        private async Task LoadFriendsListAsync()
+        private async Task LoadFriendsAsync()
         {
             try
             {
+                FriendsMessageBox.Text = "Загрузка списка друзей...";
+
+                // Запрос к серверу
                 var response = await HttpClientProvider.Client.GetAsync($"{HttpClientProvider.GetBaseUrl()}/api/Friends/friends?userId={currentUserId}");
                 var jsonResponse = await response.Content.ReadAsStringAsync();
 
-                Console.WriteLine($"[DEBUG] Friends List JSON: {jsonResponse}");
+                // Логируем ответ
+                Debug.WriteLine($"[SERVER RESPONSE]: {jsonResponse}");
 
-                if (!response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode || string.IsNullOrWhiteSpace(jsonResponse))
                 {
-                    Console.WriteLine($"[ERROR] Ошибка загрузки списка друзей: {response.StatusCode} - {response.ReasonPhrase}");
-                    Console.WriteLine($"[ERROR] Тело ответа: {jsonResponse}");
-                    MessageBoxText.Text = $"Ошибка загрузки списка друзей: {response.StatusCode} - {response.ReasonPhrase}";
-                    return;
-                }
-
-                // Проверяем, не пуст ли ответ
-                if (string.IsNullOrWhiteSpace(jsonResponse) || jsonResponse == "[]")
-                {
-                    Console.WriteLine("[DEBUG] У пользователя нет друзей.");
+                    FriendsMessageBox.Text = "Ошибка загрузки списка друзей.";
                     FriendsListBox.ItemsSource = null;
-                    MessageBoxText.Text = "Нет друзей.";
                     return;
                 }
 
-                // Попытка десериализации JSON
-                try
-                {
-                    var friendsList = JsonConvert.DeserializeObject<List<Friend>>(jsonResponse);
-                    if (friendsList == null || friendsList.Count == 0)
-                    {
-                        Console.WriteLine("[DEBUG] У пользователя нет друзей.");
-                        FriendsListBox.ItemsSource = null;
-                        MessageBoxText.Text = "Нет друзей.";
-                        return;
-                    }
+                // Десериализуем список друзей
+                var friendsList = JsonConvert.DeserializeObject<List<Friend>>(jsonResponse);
 
-                    FriendsListBox.ItemsSource = friendsList;
-                    FriendsListBox.Items.Refresh();
-                }
-                catch (JsonException jsonEx)
+                if (friendsList == null || friendsList.Count == 0)
                 {
-                    Console.WriteLine($"[ERROR] Ошибка при десериализации JSON: {jsonEx.Message}");
-                    Console.WriteLine($"[ERROR] Полученный JSON: {jsonResponse}");
-                    MessageBoxText.Text = $"Ошибка обработки данных.";
+                    FriendsMessageBox.Text = "Список друзей пуст.";
+                    FriendsListBox.ItemsSource = null;
+                    return;
                 }
+
+                // Устанавливаем данные
+                FriendsListBox.ItemsSource = friendsList;
+                FriendsListBox.Items.Refresh(); // Принудительное обновление UI
+                FriendsMessageBox.Text = "Список друзей загружен.";
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] Ошибка загрузки списка друзей: {ex.Message}");
-                MessageBoxText.Text = $"Ошибка загрузки списка друзей: {ex.Message}";
+                FriendsMessageBox.Text = $"Ошибка: {ex.Message}";
+                Debug.WriteLine($"[ERROR]: {ex}");
             }
         }
 
+        // Кнопка удаления друга
+        private async void RemoveFriendButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is int friendId)
+            {
+                try
+                {
+                    FriendsMessageBox.Text = "Удаление друга...";
+
+                    var response = await HttpClientProvider.Client.DeleteAsync($"{HttpClientProvider.GetBaseUrl()}/api/Friends/remove?userId={currentUserId}&friendId={friendId}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        FriendsMessageBox.Text = "Друг удалён.";
+                        await LoadFriendsAsync();
+                    }
+                    else
+                    {
+                        FriendsMessageBox.Text = "Ошибка удаления друга.";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    FriendsMessageBox.Text = $"Ошибка: {ex.Message}";
+                    Debug.WriteLine($"[ERROR]: {ex}");
+                }
+            }
+        }
 
         // Загрузка исходящих заявок
+        private async Task LoadIncomingRequestsAsync()
+        {
+            try
+            {
+                var response = await HttpClientProvider.Client.GetAsync($"{HttpClientProvider.GetBaseUrl()}/api/Friends/incoming-requests?userId={currentUserId}");
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode || string.IsNullOrWhiteSpace(jsonResponse))
+                {
+                    IncomingRequestsListBox.ItemsSource = null;
+                    return;
+                }
+
+                var incomingRequests = JsonConvert.DeserializeObject<List<FriendRequest>>(jsonResponse);
+                IncomingRequestsListBox.ItemsSource = incomingRequests;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка загрузки входящих заявок: {ex.Message}");
+            }
+        }
+
+        // Загрузка входящих заявок
         private async Task LoadOutgoingRequestsAsync()
         {
             try
             {
                 var response = await HttpClientProvider.Client.GetAsync($"{HttpClientProvider.GetBaseUrl()}/api/Friends/outgoing-requests?userId={currentUserId}");
+                var jsonResponse = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode || string.IsNullOrWhiteSpace(jsonResponse))
                 {
-                    MessageBoxText.Text = $"Ошибка загрузки исходящих заявок: {response.StatusCode} - {response.ReasonPhrase}";
+                    OutgoingRequestsListBox.ItemsSource = null;
                     return;
                 }
 
-                var jsonResponse = await response.Content.ReadAsStringAsync();
                 var outgoingRequests = JsonConvert.DeserializeObject<List<FriendRequest>>(jsonResponse);
                 OutgoingRequestsListBox.ItemsSource = outgoingRequests;
             }
             catch (Exception ex)
             {
-                MessageBoxText.Text = $"Ошибка загрузки исходящих заявок: {ex.Message}";
+                Console.WriteLine($"Ошибка загрузки исходящих заявок: {ex.Message}");
             }
         }
 
@@ -209,63 +249,6 @@ namespace SHOOTER_MESSANGER
             }
         }
 
-        private async Task LoadIncomingRequestsAsync()
-        {
-            try
-            {
-                var response = await HttpClientProvider.Client.GetAsync($"{HttpClientProvider.GetBaseUrl()}/api/Friends/incoming-requests?userId={currentUserId}");
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine($"[DEBUG] Incoming Requests JSON: {jsonResponse}");
-
-                // Проверяем, успешен ли статус-код
-                if (!response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"[ERROR] Сервер вернул ошибку: {response.StatusCode} - {response.ReasonPhrase}");
-                    Console.WriteLine($"[ERROR] Тело ответа: {jsonResponse}");
-                    MessageBoxText.Text = $"Ошибка загрузки входящих заявок: {response.StatusCode} - {response.ReasonPhrase}";
-                    return;
-                }
-
-                // Проверяем, не пуст ли ответ
-                if (string.IsNullOrWhiteSpace(jsonResponse) || jsonResponse.StartsWith("<") || jsonResponse.StartsWith("Ошибка"))
-                {
-                    Console.WriteLine("[DEBUG] Сервер вернул пустой или некорректный ответ.");
-                    IncomingRequestsListBox.ItemsSource = null;
-                    MessageBoxText.Text = "Входящих заявок нет.";
-                    return;
-                }
-
-                // Попытка десериализации JSON
-                try
-                {
-                    var incomingRequests = JsonConvert.DeserializeObject<List<FriendRequest>>(jsonResponse);
-                    if (incomingRequests == null || incomingRequests.Count == 0)
-                    {
-                        Console.WriteLine("[DEBUG] Входящих заявок нет.");
-                        IncomingRequestsListBox.ItemsSource = null;
-                        MessageBoxText.Text = "Входящих заявок нет.";
-                        return;
-                    }
-
-                    IncomingRequestsListBox.ItemsSource = incomingRequests;
-                    IncomingRequestsListBox.Items.Refresh();
-                }
-                catch (JsonException jsonEx)
-                {
-                    Console.WriteLine($"[ERROR] Ошибка при десериализации JSON: {jsonEx.Message}");
-                    Console.WriteLine($"[ERROR] Полученный JSON: {jsonResponse}");
-                    MessageBoxText.Text = $"Ошибка обработки данных.";
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] Ошибка загрузки входящих заявок: {ex.Message}");
-                MessageBoxText.Text = $"Ошибка загрузки входящих заявок: {ex.Message}";
-            }
-        }
-
-
         private async void AcceptRequestButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
@@ -299,7 +282,6 @@ namespace SHOOTER_MESSANGER
                 Console.WriteLine($"[ERROR] Ошибка принятия заявки: {ex.Message}");
             }
         }
-
 
         private async Task PerformSearchAsync(string query)
         {
@@ -396,7 +378,6 @@ namespace SHOOTER_MESSANGER
                 return;
             }
 
-
             Console.WriteLine($"[CLIENT] Нажата кнопка: userId={userId}, currentUserId={currentUserId}");
 
             try
@@ -441,35 +422,6 @@ namespace SHOOTER_MESSANGER
             }
         }
 
-        // Удаление друга
-        private async void RemoveFriendButton_Click(object sender, RoutedEventArgs e)
-        {
-            var friendId = (int)((Button)sender).Tag;
-            try
-            {
-                var response = await HttpClientProvider.Client.PostAsync(
-                    $"{HttpClientProvider.GetBaseUrl()}/api/Friends/remove-friend",
-                    new StringContent(JsonConvert.SerializeObject(new
-                    {
-                        UserId = currentUserId,
-                        FriendId = friendId,
-                        action = "remove"
-                    }), Encoding.UTF8, "application/json"));
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    MessageBoxText.Text = $"Ошибка удаления друга: {response.StatusCode} - {response.ReasonPhrase}";
-                    return;
-                }
-
-                MessageBoxText.Text = "Друг удален.";
-            }
-            catch (Exception ex)
-            {
-                MessageBoxText.Text = $"Ошибка при удалении друга: {ex.Message}";
-            }
-        }
-
         private void SearchResultsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // Получаем выбранного пользователя из списка
@@ -481,5 +433,13 @@ namespace SHOOTER_MESSANGER
                 MessageBoxText.Text = $"Вы выбрали {selectedFriend.FriendName}";
             }
         }
+
+        private void OpenChatsButton_Click(object sender, RoutedEventArgs e)
+        {
+            MainWindow chatWindow = new MainWindow(currentUserId);
+            chatWindow.Show();
+            this.Close();
+        }
+
     }
 }

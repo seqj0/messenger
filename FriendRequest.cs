@@ -8,7 +8,11 @@ namespace SHOOTER_MESSANGER
 {
     public class FriendRequest
     {
-        public string RequesterName { get; set; }
         public int RequesterId { get; set; }
+        public int ReceiverId { get; set; }
+        public string RequesterName { get; set; }  // Новый параметр
+        public string ReceiverName { get; set; }   // Новый параметр
+        public string Status { get; set; }
     }
+
 }
