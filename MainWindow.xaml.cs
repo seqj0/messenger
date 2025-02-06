@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Text;
 using System.Windows.Controls;
 using System.IO;
+using System.Windows.Input;
 
 namespace SHOOTER_MESSANGER
 {
@@ -43,15 +44,15 @@ namespace SHOOTER_MESSANGER
         {
             try
             {
-                string scheme = HttpClientProvider.IsSecure ? "wss" : "ws";
-                _webSocket = new WebSocket($"{scheme}://{HttpClientProvider.GetBaseUrl()}/ws");
+                //string scheme = HttpClientProvider.IsSecure ? "wss" : "ws";
+                //_webSocket = new WebSocket($"{scheme}://{HttpClientProvider.GetBaseUrl()}/ws");
+                _webSocket = new WebSocket("ws://192.168.1.34:5000/ws");
 
                 _webSocket.OnOpen += (sender, e) =>
                 {
                     Dispatcher.Invoke(() =>
                     {
                         AppendMessage("Соединение установлено.");
-                        SendButton.IsEnabled = true;
                     });
                     // Запускаем цикл пинга, чтобы поддерживать соединение (опционально)
                     StartPingLoop();
@@ -67,7 +68,6 @@ namespace SHOOTER_MESSANGER
                     Dispatcher.Invoke(() =>
                     {
                         AppendMessage("Соединение разорвано.");
-                        SendButton.IsEnabled = false;
                     });
                     // Автоматическое переподключение через 5 секунд
                     Task.Delay(5000).ContinueWith(t => ReconnectWebSocket());
@@ -85,6 +85,43 @@ namespace SHOOTER_MESSANGER
             catch (Exception ex)
             {
                 AppendMessage($"Ошибка подключения: {ex.Message}");
+            }
+        }
+
+        private void InputBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SendMessage();
+                e.Handled = true; // Предотвращаем добавление новой строки в TextBox
+            }
+        }
+
+        private void SendMessage()
+        {
+            if (!string.IsNullOrWhiteSpace(InputBox.Text) && selectedFriendId != -1)
+            {
+                string messageText = InputBox.Text.Trim();
+                InputBox.Text = ""; // Очищаем поле ввода
+
+                var messageObject = new
+                {
+                    From = CurrentUserId,
+                    To = selectedFriendId,
+                    Message = messageText
+                };
+
+                string jsonMessage = JsonConvert.SerializeObject(messageObject);
+
+                if (_webSocket != null && _webSocket.IsAlive)
+                {
+                    _webSocket.Send(jsonMessage);
+                    AppendMessage($"Вы: {messageText}"); // Добавляем сообщение в чат
+                }
+                else
+                {
+                    AppendMessage("Ошибка: соединение с сервером отсутствует.");
+                }
             }
         }
 
@@ -201,7 +238,8 @@ namespace SHOOTER_MESSANGER
             // Подписываемся на событие добавления друга
             searchWindow.FriendAdded += OnFriendAdded;
 
-            searchWindow.ShowDialog();
+            searchWindow.Show();
+            this.Close();
         }
 
         private void FriendsListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
